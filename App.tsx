@@ -331,8 +331,12 @@ const App: React.FC = () => {
         setConnectionStatus({ success: true, message: "Conexão estabelecida com sucesso! Bucket acessível." });
     } catch (err: any) {
         let msg = "Erro desconhecido.";
-        if (err.name === 'NetworkingError' || err.message === 'Network Error') {
-            msg = "Erro de Rede/CORS. Verifique se o CORS está configurado no bucket.";
+        console.error("Connection Error details:", err);
+        
+        if (err.message === 'Failed to fetch') {
+            msg = "Bloqueio CORS ou Rede. Configure o CORS no seu Bucket S3 para permitir esta origem.";
+        } else if (err.name === 'NetworkingError' || err.message === 'Network Error') {
+            msg = "Erro de Rede. Verifique sua conexão e o CORS do bucket.";
         } else if (err.$metadata?.httpStatusCode === 403) {
             msg = "Acesso Negado (403). Verifique as permissões do usuário IAM.";
         } else if (err.$metadata?.httpStatusCode === 404) {
@@ -354,6 +358,8 @@ const App: React.FC = () => {
       setProcessingProgress({ current: 0, total: itemsToProcess.length });
       setStatusFilter('all');
 
+      const isAwsReady = awsConfig.enabled && awsConfig.accessKeyId && awsConfig.secretAccessKey;
+
       const newProcessItems = itemsToProcess.map(item => ({
         file: item.file, 
         id: item.id,
@@ -363,7 +369,7 @@ const App: React.FC = () => {
         processedAt: new Date(),
         status: 'processing' as const,
         processedSize: 0,
-        processingSource: 'local' as const,
+        processingSource: isAwsReady ? 'aws' as const : 'local' as const,
         processedName: item.file.name // Inicialmente igual, muda ao completar
       }));
 
@@ -409,7 +415,7 @@ const App: React.FC = () => {
           const finalDisplayName = `${baseName}.${newExt}`;
 
           // 3. Tentativa de Processamento AWS
-          if (awsConfig.enabled && awsConfig.accessKeyId && awsConfig.secretAccessKey) {
+          if (isAwsReady) {
              try {
                 addLog('INFO', `AWS S3: Iniciando Upload de ${originalName}...`, 'S3-Input');
                 // Envia com a chave única
@@ -425,6 +431,8 @@ const App: React.FC = () => {
                 addLog('WARN', `Falha na AWS (${msg}). Usando fallback local.`, 'Lambda');
                 console.warn("AWS Fallback Reason:", awsError);
                 // Se falhar, cai para o fallback local abaixo
+                // Atualizar o status source para local se falhar o AWS
+                setImages(prev => prev.map(img => img.id === id ? { ...img, processingSource: 'local' } : img));
              }
           }
 
@@ -1322,6 +1330,10 @@ const App: React.FC = () => {
                             <div>
                                 <label className="block text-xs text-slate-400 mb-1">Input Bucket</label>
                                 <input type="text" value={awsConfig.inputBucket} onChange={(e) => setAwsConfig(p => ({...p, inputBucket: e.target.value}))} className="w-full bg-slate-800 border border-slate-600 rounded p-2 text-white text-sm" />
+                            </div>
+                            <div>
+                                <label className="block text-xs text-slate-400 mb-1">Output Bucket</label>
+                                <input type="text" value={awsConfig.outputBucket} onChange={(e) => setAwsConfig(p => ({...p, outputBucket: e.target.value}))} className="w-full bg-slate-800 border border-slate-600 rounded p-2 text-white text-sm" />
                             </div>
                         </div>
                         <p className="text-[10px] text-yellow-500 mt-2 flex gap-1"><AlertTriangle className="w-3 h-3" /> Certifique-se de que o CORS está configurado no bucket.</p>

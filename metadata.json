@@ -1,0 +1,7 @@
+{
+  "name": "CloudThumb AI",
+  "description": "A serverless-style thumbnail generator that processes images, generates AI metadata using Gemini, and simulates cloud monitoring metrics as described in the project architecture.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

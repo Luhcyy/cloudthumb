@@ -66,8 +66,27 @@ interface StagedFile {
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'generator' | 'monitoring'>('generator');
   
-  // Main Gallery State
-  const [images, setImages] = useState<ProcessedImage[]>([]);
+  // Main Gallery State - Initialized from LocalStorage if available
+  const [images, setImages] = useState<ProcessedImage[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('cloudthumb_images');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          // Rehydrate Date objects and handle missing files
+          return parsed.map((img: any) => ({
+            ...img,
+            processedAt: new Date(img.processedAt),
+            file: undefined // File objects cannot be persisted
+          }));
+        }
+      } catch (e) {
+        console.warn("Failed to load images from local storage", e);
+      }
+    }
+    return [];
+  });
+
   const [statusFilter, setStatusFilter] = useState<'all' | 'processing' | 'completed' | 'error'>('all');
   
   // Staging Queue State
@@ -146,6 +165,17 @@ const App: React.FC = () => {
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+
+  // Persistence Effect: Save images to LocalStorage whenever they change
+  useEffect(() => {
+    try {
+      // Create a clean copy without the 'file' property (File objects are not serializable)
+      const serializableImages = images.map(({ file, ...rest }) => rest);
+      localStorage.setItem('cloudthumb_images', JSON.stringify(serializableImages));
+    } catch (e) {
+      console.error("Failed to save images to local storage (likely quota exceeded)", e);
+    }
+  }, [images]);
 
   // Simulate initial metrics data
   useEffect(() => {
@@ -1133,11 +1163,13 @@ const App: React.FC = () => {
                                </div>
                             </div>
                             {/* Source Badge */}
-                            <div className="absolute top-2 right-2 z-10">
-                               <div className={`px-2 py-0.5 rounded text-[10px] font-bold border backdrop-blur-sm ${img.processingSource === 'aws' ? 'bg-green-500/20 border-green-500/30 text-green-400' : 'bg-blue-500/20 border-blue-500/30 text-blue-400'}`}>
-                                   {img.processingSource === 'aws' ? 'AWS' : 'LOCAL'}
-                               </div>
-                            </div>
+                            {img.processingSource && (
+                              <div className="absolute top-2 right-2 z-10">
+                                 <div className={`px-2 py-0.5 rounded text-[10px] font-bold border backdrop-blur-sm ${img.processingSource === 'aws' ? 'bg-green-500/20 border-green-500/30 text-green-400' : 'bg-blue-500/20 border-blue-500/30 text-blue-400'}`}>
+                                     {img.processingSource === 'aws' ? 'AWS' : 'LOCAL'}
+                                 </div>
+                              </div>
+                            )}
 
                             {img.status === 'processing' ? <Cpu className="w-8 h-8 text-slate-500 animate-bounce" /> : <img src={img.thumbnailUrl} alt={img.originalName} className="max-h-full max-w-full rounded shadow-md object-contain" />}
                             {img.status === 'completed' && <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[1px]"><div className="bg-slate-900/80 p-2 rounded-full text-white transform scale-90 group-hover:scale-100 transition-transform"><Maximize2 className="w-6 h-6" /></div></div>}

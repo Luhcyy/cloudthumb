@@ -3,7 +3,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 
 // Initialize the client
 // Note: In a real production app, ensure API_KEY is set in your environment
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+const ai = new GoogleGenAI({ apiKey: import.meta.env.API_KEY || '' });
 
 export interface ImageAnalysisResult {
   description: string;

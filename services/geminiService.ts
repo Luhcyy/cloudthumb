@@ -1,9 +1,4 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
-
-// Initialize the client
-// Note: In a real production app, ensure API_KEY is set in your environment
-const ai = new GoogleGenAI({ apiKey: import.meta.env.API_KEY || '' });
 
 export interface ImageAnalysisResult {
   description: string;
@@ -13,6 +8,11 @@ export interface ImageAnalysisResult {
 
 export const analyzeImage = async (base64Image: string, mimeType: string = 'image/jpeg'): Promise<ImageAnalysisResult> => {
   try {
+    // Lazy Initialization: Initialize the client inside the function.
+    // This ensures that the 'index.tsx' adapter has run and populated process.env.API_KEY
+    // from import.meta.env before we try to access it.
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
     if (!process.env.API_KEY) {
       console.warn("No API Key provided. Returning mock data.");
       // Simulação melhorada para demonstrar a funcionalidade sem chave

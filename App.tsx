@@ -985,6 +985,13 @@ const App: React.FC = () => {
                           : 'border-slate-600 hover:border-blue-400 hover:bg-slate-800/50'
                        }
                      `}>
+                       {awsConfig.enabled && (
+                          <div className="absolute top-4 right-4 z-20 bg-green-500/10 border border-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 backdrop-blur-sm animate-in fade-in slide-in-from-top-2">
+                             <Database className="w-3 h-3" />
+                             <span>Upload S3 Ativo</span>
+                          </div>
+                       )}
+
                        <input type="file" className="hidden" accept="image/*" multiple onChange={handleFileUpload} disabled={isProcessing} />
                        <div className={`flex flex-col items-center space-y-3 transition-opacity duration-300 ${isProcessing || showDropSuccess || isDragging ? 'opacity-20 blur-[2px]' : 'opacity-100'}`}>
                          <Cloud className="w-12 h-12 text-slate-500 group-hover:text-blue-400 transition-colors" />
